@@ -1,8 +1,8 @@
 -- Campus Second-hand Market Database Schema
 -- MySQL 8.0+
 
-CREATE DATABASE IF NOT EXISTS campus_market DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
-USE campus_market;
+CREATE DATABASE IF NOT EXISTS `2023011310` DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+USE `2023011310`;
 
 -- Users table
 CREATE TABLE IF NOT EXISTS users (
