@@ -8,6 +8,9 @@
             <span class="label">账户余额</span>
             <span class="value">¥{{ wallet?.balance?.toFixed(2) || '0.00' }}</span>
           </div>
+          <div style="text-align:center;margin-top:10px">
+            <el-button type="primary" @click="showRecharge = true">充值</el-button>
+          </div>
         </el-card>
       </el-col>
       <el-col :span="12">
@@ -40,6 +43,19 @@
       <el-table-column prop="description" label="说明" min-width="200" />
       <el-table-column prop="createdAt" label="时间" width="160" />
     </el-table>
+
+    <!-- 充值弹窗 -->
+    <el-dialog v-model="showRecharge" title="钱包充值" width="350px">
+      <el-input v-model="rechargeAmount" type="number" min="0.01" step="0.01"
+        placeholder="请输入充值金额">
+        <template #append>元</template>
+      </el-input>
+      <p style="color:#909399;font-size:12px;margin-top:8px">模拟充值，直接到账</p>
+      <template #footer>
+        <el-button @click="showRecharge = false">取消</el-button>
+        <el-button type="primary" @click="doRecharge">确认充值</el-button>
+      </template>
+    </el-dialog>
   </div>
 </template>
 
@@ -51,16 +67,44 @@ import api from '../api'
 const wallet = ref(null)
 const transactions = ref([])
 const loadingTxs = ref(false)
+const showRecharge = ref(false)
+const rechargeAmount = ref(null)
 
 onMounted(() => {
+  loadWallet()
+  loadTxs()
+})
+
+function loadWallet() {
   api.get('/wallet').then(res => {
     if (res.data.code === 200) wallet.value = res.data.data
   })
+}
+
+function loadTxs() {
   loadingTxs.value = true
   api.get('/wallet/transactions').then(res => {
     if (res.data.code === 200) transactions.value = res.data.data
   }).finally(() => loadingTxs.value = false)
-})
+}
+
+function doRecharge() {
+  if (!rechargeAmount.value || rechargeAmount.value <= 0) {
+    ElMessage.warning('请输入有效的充值金额')
+    return
+  }
+  api.post('/wallet/recharge', { amount: rechargeAmount.value }).then(res => {
+    if (res.data.code === 200) {
+      ElMessage.success(res.data.message)
+      showRecharge.value = false
+      rechargeAmount.value = null
+      loadWallet()
+      loadTxs()
+    } else {
+      ElMessage.error(res.data.message)
+    }
+  })
+}
 
 function usePoints() {
   ElMessageBox.prompt('请输入要使用的积分数量', '积分抵扣', {
@@ -69,7 +113,7 @@ function usePoints() {
     api.post('/wallet/points/use', { points: parseInt(value) }).then(res => {
       if (res.data.code === 200) {
         ElMessage.success(res.data.message)
-        api.get('/wallet').then(r => { if (r.data.code === 200) wallet.value = r.data.data })
+        loadWallet()
       }
     })
   }).catch(() => {})

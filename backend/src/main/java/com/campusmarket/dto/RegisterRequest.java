@@ -14,6 +14,8 @@ public class RegisterRequest {
     private String bankAccount;
     private String role; // USER or MERCHANT
     private String storeName;
+    private String businessLicenseImg; // 营业执照图片URL（商家注册）
+    private String idCardImg;          // 身份证图片URL（商家注册）
     private String captcha;
     private String captchaKey;
 }

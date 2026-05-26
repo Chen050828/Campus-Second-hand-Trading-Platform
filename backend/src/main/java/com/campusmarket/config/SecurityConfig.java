@@ -41,8 +41,8 @@ public class SecurityConfig {
             .antMatchers("/auth/**", "/captcha/**", "/uploads/**").permitAll()
             .antMatchers("/products", "/products/**", "/categories/**").permitAll()
             .antMatchers("/reviews/merchant/**", "/user/info/**").permitAll()
-            // 文件上传需登录
-            .antMatchers("/files/upload").authenticated()
+            // 文件上传（注册时也需要用，故放开）
+            .antMatchers("/files/upload").permitAll()
             // 管理员专用
             .antMatchers("/admin/**").hasRole("ADMIN")
             // 个人资料需登录

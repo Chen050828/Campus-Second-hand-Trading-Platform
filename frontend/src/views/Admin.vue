@@ -14,6 +14,33 @@
               <el-tag :type="row.role === 'MERCHANT' ? 'warning' : ''">{{ row.role === 'MERCHANT' ? '商家' : '用户' }}</el-tag>
             </template>
           </el-table-column>
+          <!-- 商家注册时上传的证件图片，管理员审核时需要查看 -->
+          <el-table-column label="证件图片" width="150">
+            <template #default="{ row }">
+              <template v-if="row.role === 'MERCHANT'">
+                <div style="display:flex;gap:4px">
+                  <el-image
+                    v-if="row.businessLicenseImg"
+                    :src="row.businessLicenseImg"
+                    :preview-src-list="[row.businessLicenseImg]"
+                    style="width:60px;height:60px;border-radius:4px"
+                    fit="cover"
+                    title="营业执照"
+                  />
+                  <el-image
+                    v-if="row.idCardImg"
+                    :src="row.idCardImg"
+                    :preview-src-list="[row.idCardImg]"
+                    style="width:60px;height:60px;border-radius:4px"
+                    fit="cover"
+                    title="身份证"
+                  />
+                  <span v-if="!row.businessLicenseImg && !row.idCardImg" style="color:#c0c4cc;font-size:12px">未上传</span>
+                </div>
+              </template>
+              <span v-else>-</span>
+            </template>
+          </el-table-column>
           <el-table-column prop="createdAt" label="注册时间" width="160" />
           <el-table-column label="操作" width="200">
             <template #default="{ row }">

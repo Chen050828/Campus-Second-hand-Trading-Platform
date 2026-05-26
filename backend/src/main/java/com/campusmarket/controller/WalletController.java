@@ -26,6 +26,13 @@ public class WalletController {
         return ApiResponse.success(walletService.getTransactions(user.getId()));
     }
 
+    @PostMapping("/recharge")
+    public ApiResponse<?> recharge(@AuthenticationPrincipal User user,
+                                    @RequestBody Map<String, Object> body) {
+        Double amount = Double.valueOf(body.get("amount").toString());
+        return walletService.selfRecharge(user.getId(), amount);
+    }
+
     @PostMapping("/points/use")
     public ApiResponse<?> usePoints(@AuthenticationPrincipal User user,
                                      @RequestBody Map<String, Integer> body) {

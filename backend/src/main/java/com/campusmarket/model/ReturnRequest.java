@@ -23,6 +23,10 @@ public class ReturnRequest {
     @Column(nullable = false, columnDefinition = "TEXT")
     private String reason;
 
+    // 退货凭证图片（JSON数组）
+    @Column(columnDefinition = "TEXT")
+    private String images;
+
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 15)
     private ReturnStatus status = ReturnStatus.PENDING;

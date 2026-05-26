@@ -89,6 +89,11 @@ public class UserService {
             return ApiResponse.error("无效的用户角色");
         }
         user.setStatus(User.UserStatus.PENDING);
+        // 商家注册时保存营业执照和身份证图片
+        if (User.UserRole.MERCHANT.equals(user.getRole())) {
+            user.setBusinessLicenseImg(req.getBusinessLicenseImg());
+            user.setIdCardImg(req.getIdCardImg());
+        }
         if (User.UserRole.MERCHANT.equals(user.getRole()) && req.getStoreName() != null) {
             user.setStoreName(req.getStoreName());
             user.setMerchantLevel(1); // 新商家默认等级1
@@ -151,10 +156,8 @@ public class UserService {
 
     @Transactional
     public void rejectUser(Long userId) {
-        userRepository.findById(userId).ifPresent(user -> {
-            user.setStatus(User.UserStatus.REJECTED);
-            userRepository.save(user);
-        });
+        // 拒绝后直接删除用户及关联数据，不保留无效记录
+        deleteUser(userId);
     }
 
     @Transactional

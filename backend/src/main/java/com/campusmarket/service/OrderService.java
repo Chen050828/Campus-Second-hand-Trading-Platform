@@ -153,7 +153,25 @@ public class OrderService {
     }
 
     /**
-     * 买家确认收货：系统中间账户转款给卖家（扣除平台手续费），订单完成。
+     * 商家发货：将订单状态从 PAID 改为 SHIPPED。
+     */
+    @Transactional
+    public ApiResponse<?> shipOrder(Long merchantId, Long orderId) {
+        Order order = orderRepository.findById(orderId).orElseThrow();
+        if (!order.getProduct().getMerchant().getId().equals(merchantId)) {
+            return ApiResponse.error("无权操作");
+        }
+        if (order.getStatus() != Order.OrderStatus.PAID) {
+            return ApiResponse.error("仅已付款的订单可以发货");
+        }
+        order.setStatus(Order.OrderStatus.SHIPPED);
+        order.setUpdatedAt(LocalDateTime.now());
+        orderRepository.save(order);
+        return ApiResponse.success("发货成功");
+    }
+
+    /**
+     * 买家确认收货：需商家先发货后才能确认，系统中间账户转款给卖家。
      */
     @Transactional
     public ApiResponse<?> confirmReceive(Long userId, Long orderId) {
@@ -161,8 +179,8 @@ public class OrderService {
         if (!order.getUser().getId().equals(userId)) {
             return ApiResponse.error("无权操作");
         }
-        if (order.getStatus() != Order.OrderStatus.PAID) {
-            return ApiResponse.error("订单状态不允许确认收货");
+        if (order.getStatus() != Order.OrderStatus.SHIPPED) {
+            return ApiResponse.error("请等待商家发货后再确认收货");
         }
 
         order.setStatus(Order.OrderStatus.RECEIVED);
@@ -191,9 +209,10 @@ public class OrderService {
                 + ", 手续费: ¥" + String.format("%.2f", fee));
         walletTransactionRepository.save(merchantTx);
 
-        order.setStatus(Order.OrderStatus.COMPLETED);
         order.setUpdatedAt(LocalDateTime.now());
         orderRepository.save(order);
+        // 订单保持 RECEIVED 状态，买家可在24小时内申请退货
+        // 超时后由定时任务自动转为 COMPLETED
 
         return ApiResponse.success("确认收货成功");
     }
@@ -219,6 +238,7 @@ public class OrderService {
         rr.setOrder(order);
         rr.setUser(userRepository.findById(userId).orElseThrow());
         rr.setReason(req.getReason());
+        rr.setImages(req.getImages()); // 退货凭证图片
         rr.setStatus(ReturnRequest.ReturnStatus.PENDING);
         returnRequestRepository.save(rr);
 

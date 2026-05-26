@@ -52,6 +52,6 @@ public class Order {
     private LocalDateTime updatedAt = LocalDateTime.now();
 
     public enum OrderStatus {
-        PAID, RECEIVED, RETURNING, RETURN_APPROVED, RETURN_REJECTED, RETURNED, COMPLETED
+        PAID, SHIPPED, RECEIVED, RETURNING, RETURN_APPROVED, RETURN_REJECTED, RETURNED, COMPLETED
     }
 }

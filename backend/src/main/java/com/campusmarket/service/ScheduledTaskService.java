@@ -33,7 +33,7 @@ public class ScheduledTaskService {
     @Value("${app.merchant.auto-confirm-days}")
     private int autoConfirmDays;
 
-    // 每小时执行一次，扫描所有PAID状态且超过7天的订单
+    // 每小时执行一次，扫描所有PAID状态且超过7天的订单自动确认
     @Scheduled(fixedRate = 3600000)
     @Transactional
     public void autoConfirmOrders() {
@@ -43,6 +43,18 @@ public class ScheduledTaskService {
         for (Order order : paidOrders) {
             if (order.getCreatedAt().isBefore(cutoff)) {
                 confirmOrder(order);
+            }
+        }
+
+        // RECEIVED 超过24小时退货窗口，自动转为 COMPLETED
+        List<Order> receivedOrders = orderRepository.findByStatus(Order.OrderStatus.RECEIVED);
+        LocalDateTime returnCutoff = LocalDateTime.now().minusHours(24);
+
+        for (Order order : receivedOrders) {
+            if (order.getReceiveTime() != null && order.getReceiveTime().isBefore(returnCutoff)) {
+                order.setStatus(Order.OrderStatus.COMPLETED);
+                order.setUpdatedAt(LocalDateTime.now());
+                orderRepository.save(order);
             }
         }
     }

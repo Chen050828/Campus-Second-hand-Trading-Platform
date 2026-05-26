@@ -48,6 +48,12 @@ public class OrderController {
         return ApiResponse.success(orderService.getMerchantOrders(merchant.getId()));
     }
 
+    @PutMapping("/merchant/{orderId}/ship")
+    public ApiResponse<?> shipOrder(@AuthenticationPrincipal User merchant,
+                                     @PathVariable Long orderId) {
+        return orderService.shipOrder(merchant.getId(), orderId);
+    }
+
     @GetMapping("/merchant/returns")
     public ApiResponse<?> merchantReturns(@AuthenticationPrincipal User merchant) {
         return ApiResponse.success(orderService.getMerchantReturns(merchant.getId()));

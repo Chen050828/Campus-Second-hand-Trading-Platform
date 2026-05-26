@@ -110,10 +110,21 @@
         <el-table :data="merchantOrders" v-loading="loadingOrders">
           <el-table-column prop="orderNo" label="订单号" width="180" />
           <el-table-column prop="product.name" label="商品" />
+          <el-table-column label="买家" width="100">
+            <template #default="{ row }">{{ row.user?.name || row.user?.username }}</template>
+          </el-table-column>
           <el-table-column label="数量" width="60"><template #default="{ row }">{{ row.quantity }}</template></el-table-column>
           <el-table-column label="金额" width="100"><template #default="{ row }">¥{{ row.totalPrice }}</template></el-table-column>
           <el-table-column label="状态" width="100">
-            <template #default="{ row }"><el-tag>{{ row.status }}</el-tag></template>
+            <template #default="{ row }">
+              <el-tag :type="orderStatusTag(row.status)">{{ orderStatusText(row.status) }}</el-tag>
+            </template>
+          </el-table-column>
+          <el-table-column label="操作" width="100">
+            <template #default="{ row }">
+              <el-button v-if="row.status === 'PAID'" type="primary" size="small"
+                @click="shipOrder(row.id)">发货</el-button>
+            </template>
           </el-table-column>
           <el-table-column prop="createdAt" label="时间" width="160" />
         </el-table>
@@ -124,7 +135,19 @@
         <el-table :data="returnList" v-loading="loadingReturns">
           <el-table-column prop="order.orderNo" label="订单号" width="180" />
           <el-table-column prop="order.product.name" label="商品" />
-          <el-table-column prop="reason" label="退货原因" />
+          <el-table-column prop="reason" label="退货原因" min-width="150" />
+          <el-table-column label="凭证" width="80">
+            <template #default="{ row }">
+              <el-image
+                v-if="getReturnFirstImage(row.images)"
+                :src="getReturnFirstImage(row.images)"
+                :preview-src-list="parseReturnImages(row.images)"
+                style="width:50px;height:50px;border-radius:4px"
+                fit="cover"
+              />
+              <span v-else>-</span>
+            </template>
+          </el-table-column>
           <el-table-column prop="status" label="状态" width="80" />
           <el-table-column label="操作" width="200">
             <template #default="{ row }">
@@ -238,6 +261,25 @@ function loadOrders() {
   }).finally(() => loadingOrders.value = false)
 }
 
+function shipOrder(orderId) {
+  api.put(`/orders/merchant/${orderId}/ship`).then(res => {
+    if (res.data.code === 200) {
+      ElMessage.success('发货成功')
+      loadOrders()
+    } else {
+      ElMessage.error(res.data.message)
+    }
+  })
+}
+
+function orderStatusTag(status) {
+  return { PAID: 'warning', SHIPPED: 'primary', RECEIVED: 'success', COMPLETED: 'success', RETURNING: 'danger', RETURNED: 'info', DELISTED: '' }[status] || ''
+}
+
+function orderStatusText(status) {
+  return { PAID: '待发货', SHIPPED: '已发货', RECEIVED: '已收货', COMPLETED: '已完成', RETURNING: '退货中', RETURNED: '已退货' }[status] || status
+}
+
 function loadReturns() {
   loadingReturns.value = true
   api.get('/orders/merchant/returns').then(res => {
@@ -261,6 +303,28 @@ function rejectReturn(id) {
 
 function productStatusType(status) {
   return { APPROVED: 'success', PENDING: 'warning', REJECTED: 'danger', SOLD_OUT: 'info', DELISTED: '' }[status] || ''
+}
+
+function getReturnFirstImage(images) {
+  if (!images) return null
+  try {
+    const arr = JSON.parse(images)
+    if (Array.isArray(arr) && arr.length > 0) return arr[0]
+    return null
+  } catch {
+    if (images.startsWith('/api/uploads/')) return images
+    return null
+  }
+}
+
+function parseReturnImages(images) {
+  if (!images) return []
+  try {
+    const arr = JSON.parse(images)
+    return Array.isArray(arr) ? arr : []
+  } catch {
+    return images ? [images] : []
+  }
 }
 </script>
 

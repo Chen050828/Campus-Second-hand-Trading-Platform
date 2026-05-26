@@ -42,6 +42,32 @@
         <el-form-item v-if="form.role === 'MERCHANT'" label="店铺名称" prop="storeName">
           <el-input v-model="form.storeName" placeholder="您的店铺名称" />
         </el-form-item>
+        <el-form-item v-if="form.role === 'MERCHANT'" label="营业执照" prop="businessLicense">
+          <el-upload
+            list-type="picture-card"
+            :http-request="uploadLicense"
+            :on-remove="() => licenseUrl = ''"
+            :auto-upload="true"
+            :limit="1"
+            accept="image/*"
+          >
+            <el-icon><Plus /></el-icon>
+          </el-upload>
+          <span style="color:#909399;font-size:12px">请上传营业执照图片</span>
+        </el-form-item>
+        <el-form-item v-if="form.role === 'MERCHANT'" label="身份证" prop="idCard">
+          <el-upload
+            list-type="picture-card"
+            :http-request="uploadIdCard"
+            :on-remove="() => idCardUrl = ''"
+            :auto-upload="true"
+            :limit="1"
+            accept="image/*"
+          >
+            <el-icon><Plus /></el-icon>
+          </el-upload>
+          <span style="color:#909399;font-size:12px">请上传身份证图片</span>
+        </el-form-item>
         <el-form-item label="验证码" prop="captcha">
           <div class="captcha-row">
             <el-input v-model="form.captcha" placeholder="验证码" style="width:140px" />
@@ -66,6 +92,7 @@
 import { ref, reactive, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
+import { Plus } from '@element-plus/icons-vue'
 import api from '../api'
 
 const router = useRouter()
@@ -73,6 +100,9 @@ const formRef = ref(null)
 const loading = ref(false)
 const captchaCode = ref('')
 const captchaKey = ref('')
+// 商家注册时上传的图片URL
+const licenseUrl = ref('')
+const idCardUrl = ref('')
 
 const form = reactive({
   role: 'USER',
@@ -104,15 +134,66 @@ function refreshCaptcha() {
   })
 }
 
+// 上传营业执照
+async function uploadLicense(options) {
+  const formData = new FormData()
+  formData.append('files', options.file)
+  try {
+    const res = await api.post('/files/upload', formData, {
+      headers: { 'Content-Type': 'multipart/form-data' }
+    })
+    if (res.data.code === 200 && res.data.data) {
+      licenseUrl.value = res.data.data[0]
+      options.onSuccess({ url: licenseUrl.value }, options.file)
+    } else {
+      options.onError(new Error(res.data.message))
+    }
+  } catch (e) {
+    ElMessage.error('营业执照上传失败')
+    options.onError(e)
+  }
+}
+
+// 上传身份证
+async function uploadIdCard(options) {
+  const formData = new FormData()
+  formData.append('files', options.file)
+  try {
+    const res = await api.post('/files/upload', formData, {
+      headers: { 'Content-Type': 'multipart/form-data' }
+    })
+    if (res.data.code === 200 && res.data.data) {
+      idCardUrl.value = res.data.data[0]
+      options.onSuccess({ url: idCardUrl.value }, options.file)
+    } else {
+      options.onError(new Error(res.data.message))
+    }
+  } catch (e) {
+    ElMessage.error('身份证上传失败')
+    options.onError(e)
+  }
+}
+
 async function handleRegister() {
   const valid = await formRef.value.validate().catch(() => false)
   if (!valid) return
+  // 商家必须上传营业执照和身份证
+  if (form.role === 'MERCHANT' && !licenseUrl.value) {
+    ElMessage.warning('请上传营业执照')
+    return
+  }
+  if (form.role === 'MERCHANT' && !idCardUrl.value) {
+    ElMessage.warning('请上传身份证')
+    return
+  }
   loading.value = true
   const payload = {
     username: form.username, password: form.password, name: form.name,
     phone: form.phone, email: form.email, city: form.city, gender: form.gender,
     bankAccount: form.bankAccount, role: form.role,
     storeName: form.role === 'MERCHANT' ? form.storeName : null,
+    businessLicenseImg: form.role === 'MERCHANT' ? licenseUrl.value : null,
+    idCardImg: form.role === 'MERCHANT' ? idCardUrl.value : null,
     captcha: form.captcha, captchaKey: captchaKey.value
   }
   api.post('/auth/register', payload).then(res => {
